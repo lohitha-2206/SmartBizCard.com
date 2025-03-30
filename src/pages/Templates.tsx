@@ -1,26 +1,97 @@
 
+import React, { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Lock } from "lucide-react";
+import { Search, Filter, Lock, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
-const templates = [
-  { id: 1, name: "Modern Minimalist", premium: false, category: "Professional" },
-  { id: 2, name: "Creative Splash", premium: false, category: "Creative" },
-  { id: 3, name: "Corporate Blue", premium: false, category: "Professional" },
-  { id: 4, name: "Tech Innovator", premium: false, category: "Technology" },
-  { id: 5, name: "Elegant Serif", premium: true, category: "Professional" },
-  { id: 6, name: "Bold Gradient", premium: true, category: "Creative" },
-  { id: 7, name: "Luxury Gold", premium: true, category: "Luxury" },
-  { id: 8, name: "Artistic Portfolio", premium: true, category: "Creative" },
-];
-
-const categories = ["All", "Professional", "Creative", "Technology", "Luxury"];
+type BusinessCardTemplate = {
+  id: string;
+  name: string;
+  description: string | null;
+  category: string | null;
+  premium: boolean;
+  front_design: {
+    background: string;
+    textColor: string;
+    layout: string;
+  };
+  back_design: {
+    background: string;
+    textColor: string;
+    layout: string;
+  };
+};
 
 const Templates = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  
+  // Fetch templates from Supabase
+  const { data: templates, isLoading, error } = useQuery({
+    queryKey: ["templates"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("business_card_templates")
+        .select("*");
+      
+      if (error) throw error;
+      return data as BusinessCardTemplate[];
+    },
+  });
+
+  // Extract unique categories
+  const categories = ["All", ...Array.from(
+    new Set(templates?.map(template => template.category || "Other"))
+  )];
+
+  // Filter templates based on search and category
+  const filteredTemplates = templates?.filter(template => {
+    const matchesSearch = searchTerm === "" || 
+      template.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      (template.description && template.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesCategory = selectedCategory === "All" || template.category === selectedCategory;
+    
+    return matchesSearch && matchesCategory;
+  });
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          <span className="ml-2 text-lg">Loading templates...</span>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <div className="flex-grow flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-bold text-destructive mb-4">Error Loading Templates</h2>
+            <p className="text-muted-foreground mb-6">We encountered an issue loading the templates.</p>
+            <Button onClick={() => window.location.reload()}>
+              Try Again
+            </Button>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen">
       <Navbar />
@@ -40,6 +111,8 @@ const Templates = () => {
               <Input 
                 placeholder="Search templates..." 
                 className="pl-9"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <Button variant="outline" className="flex gap-2 items-center">
@@ -50,8 +123,9 @@ const Templates = () => {
               {categories.map((category, index) => (
                 <Badge 
                   key={index} 
-                  variant={index === 0 ? "default" : "outline"}
+                  variant={category === selectedCategory ? "default" : "outline"}
                   className="cursor-pointer"
+                  onClick={() => setSelectedCategory(category)}
                 >
                   {category}
                 </Badge>
@@ -60,7 +134,7 @@ const Templates = () => {
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {templates.map((template) => (
+            {filteredTemplates?.map((template) => (
               <div 
                 key={template.id} 
                 className="flex flex-col bg-card border rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow"
@@ -68,7 +142,13 @@ const Templates = () => {
                 <div className="relative h-48 bg-muted">
                   <div className="absolute inset-0 flex items-center justify-center business-card">
                     <div className="business-card-inner absolute inset-0">
-                      <div className="business-card-front absolute inset-0 flex flex-col justify-between p-4 bg-gradient-to-br from-brand-pink/90 to-primary/90 text-white">
+                      <div 
+                        className="business-card-front absolute inset-0 flex flex-col justify-between p-4 text-white"
+                        style={{
+                          background: template.front_design.background,
+                          color: template.front_design.textColor
+                        }}
+                      >
                         <div>
                           <h3 className="text-sm font-bold">John Smith</h3>
                           <p className="text-xs font-medium">CEO & Founder</p>
@@ -78,9 +158,15 @@ const Templates = () => {
                           <p className="text-[10px] mt-1">www.example.com</p>
                         </div>
                       </div>
-                      <div className="business-card-back absolute inset-0 flex flex-col justify-between p-4 bg-white text-brand-dark">
+                      <div 
+                        className="business-card-back absolute inset-0 flex flex-col justify-between p-4"
+                        style={{
+                          background: template.back_design.background,
+                          color: template.back_design.textColor
+                        }}
+                      >
                         <div className="text-right">
-                          <h3 className="text-sm font-bold text-brand-pink">John Smith</h3>
+                          <h3 className="text-sm font-bold">John Smith</h3>
                           <p className="text-xs">john@example.com</p>
                         </div>
                         <div>
@@ -103,11 +189,11 @@ const Templates = () => {
                   <div className="flex justify-between items-center mb-2">
                     <h3 className="font-semibold">{template.name}</h3>
                     <Badge variant="outline" className="text-xs">
-                      {template.category}
+                      {template.category || "Other"}
                     </Badge>
                   </div>
                   <div className="mt-4">
-                    <Link to={template.premium ? "/pricing" : "/editor"}>
+                    <Link to={template.premium ? "/pricing" : `/editor?templateId=${template.id}`}>
                       <Button 
                         variant={template.premium ? "outline" : "default"} 
                         className="w-full"

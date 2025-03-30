@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Templates from "./pages/Templates";
+import Editor from "./pages/Editor";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -30,6 +31,7 @@ const App = () => (
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/templates" element={<Templates />} />
+              <Route path="/editor" element={<Editor />} />
               {/* Add more protected routes here */}
             </Route>
             

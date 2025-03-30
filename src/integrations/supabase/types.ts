@@ -9,6 +9,83 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      business_card_templates: {
+        Row: {
+          back_design: Json
+          category: string | null
+          created_at: string
+          description: string | null
+          front_design: Json
+          id: string
+          name: string
+          premium: boolean | null
+          updated_at: string
+        }
+        Insert: {
+          back_design: Json
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          front_design: Json
+          id?: string
+          name: string
+          premium?: boolean | null
+          updated_at?: string
+        }
+        Update: {
+          back_design?: Json
+          category?: string | null
+          created_at?: string
+          description?: string | null
+          front_design?: Json
+          id?: string
+          name?: string
+          premium?: boolean | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      business_cards: {
+        Row: {
+          back_data: Json
+          created_at: string
+          front_data: Json
+          id: string
+          name: string
+          template_id: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          back_data: Json
+          created_at?: string
+          front_data: Json
+          id?: string
+          name: string
+          template_id?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          back_data?: Json
+          created_at?: string
+          front_data?: Json
+          id?: string
+          name?: string
+          template_id?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_cards_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "business_card_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
