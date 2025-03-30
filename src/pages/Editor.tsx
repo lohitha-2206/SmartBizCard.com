@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
@@ -14,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Save, ArrowLeft, ChevronRight, Download } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 
 // Type definitions for our business card data
 type BusinessCardTemplate = {
@@ -32,6 +32,8 @@ type BusinessCardTemplate = {
     textColor: string;
     layout: string;
   };
+  created_at: string;
+  updated_at: string;
 };
 
 type BusinessCardData = {
@@ -76,7 +78,12 @@ const Editor = () => {
         .select("*");
       
       if (error) throw error;
-      return data as BusinessCardTemplate[];
+      // Cast the data to the correct type to handle the JSON fields
+      return (data as any[]).map(item => ({
+        ...item,
+        front_design: item.front_design as BusinessCardTemplate["front_design"],
+        back_design: item.back_design as BusinessCardTemplate["back_design"]
+      })) as BusinessCardTemplate[];
     },
   });
 

@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import Navbar from "@/components/Navbar";
@@ -9,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Search, Filter, Lock, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 
 type BusinessCardTemplate = {
   id: string;
@@ -26,6 +26,8 @@ type BusinessCardTemplate = {
     textColor: string;
     layout: string;
   };
+  created_at: string;
+  updated_at: string;
 };
 
 const Templates = () => {
@@ -41,7 +43,12 @@ const Templates = () => {
         .select("*");
       
       if (error) throw error;
-      return data as BusinessCardTemplate[];
+      // Cast the data to the correct type to handle the JSON fields
+      return (data as any[]).map(item => ({
+        ...item,
+        front_design: item.front_design as BusinessCardTemplate["front_design"],
+        back_design: item.back_design as BusinessCardTemplate["back_design"]
+      })) as BusinessCardTemplate[];
     },
   });
 
