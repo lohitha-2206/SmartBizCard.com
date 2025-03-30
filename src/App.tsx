@@ -10,6 +10,10 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Templates from "./pages/Templates";
 import Editor from "./pages/Editor";
+import Pricing from "./pages/Pricing";
+import Features from "./pages/Features";
+import MyCards from "./pages/MyCards";
+import Profile from "./pages/Profile";
 import { AuthProvider } from "./contexts/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -27,12 +31,15 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/templates" element={<Templates />} />
+            <Route path="/pricing" element={<Pricing />} />
+            <Route path="/features" element={<Features />} />
             
             {/* Protected routes */}
             <Route element={<ProtectedRoute />}>
-              <Route path="/templates" element={<Templates />} />
               <Route path="/editor" element={<Editor />} />
-              {/* Add more protected routes here */}
+              <Route path="/my-cards" element={<MyCards />} />
+              <Route path="/profile" element={<Profile />} />
             </Route>
             
             {/* Catch-all route */}
