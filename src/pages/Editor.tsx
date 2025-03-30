@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
+import BusinessCardExporter from "@/components/BusinessCardExporter";
 import { 
   Loader2, Save, ArrowLeft, ChevronRight, Download, Palette, Type, 
   LayoutGrid, CircleDot, Undo, Redo
@@ -27,16 +28,8 @@ type BusinessCardTemplate = {
   description: string | null;
   category: string | null;
   premium: boolean;
-  front_design: {
-    background: string;
-    textColor: string;
-    layout: string;
-  };
-  back_design: {
-    background: string;
-    textColor: string;
-    layout: string;
-  };
+  front_design: Json;
+  back_design: Json;
   created_at: string;
   updated_at: string;
 };
@@ -84,7 +77,11 @@ const colorPresets = [
   { name: "Sunset Orange", front: "linear-gradient(135deg, #ff9e00, #ff4e00)", frontText: "#ffffff", back: "#ffffff", backText: "#ff4e00" },
   { name: "Pastel Pink", front: "#ffafcc", frontText: "#590d22", back: "#ffeae0", backText: "#590d22" },
   { name: "Dark Mode", front: "#121212", frontText: "#e0e0e0", back: "#1f1f1f", backText: "#e0e0e0" },
-  { name: "Forest Tones", front: "#344e41", frontText: "#dad7cd", back: "#a3b18a", backText: "#344e41" }
+  { name: "Forest Tones", front: "#344e41", frontText: "#dad7cd", back: "#a3b18a", backText: "#344e41" },
+  { name: "Royal Purple", front: "#7209b7", frontText: "#ffffff", back: "#f8edeb", backText: "#7209b7" },
+  { name: "Teal Dream", front: "#2a9d8f", frontText: "#ffffff", back: "#e9f5f3", backText: "#2a9d8f" },
+  { name: "Golden Luxury", front: "linear-gradient(135deg, #bf9b30, #f1c40f)", frontText: "#000000", back: "#1e1e1e", backText: "#f1c40f" },
+  { name: "Neon Night", front: "#0d0221", frontText: "#fe53bb", back: "#1a0b2e", backText: "#31e7b6" }
 ];
 
 const Editor = () => {
@@ -95,6 +92,8 @@ const Editor = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [editMode, setEditMode] = useState<"content" | "design">("content");
+  const frontCardRef = useRef<HTMLDivElement>(null);
+  const backCardRef = useRef<HTMLDivElement>(null);
   const [cardData, setCardData] = useState<BusinessCardData>({
     name: "My Business Card",
     firstName: "",
@@ -128,12 +127,7 @@ const Editor = () => {
         .select("*");
       
       if (error) throw error;
-      // Cast the data to the correct type to handle the JSON fields
-      return (data as any[]).map(item => ({
-        ...item,
-        front_design: item.front_design as BusinessCardTemplate["front_design"],
-        back_design: item.back_design as BusinessCardTemplate["back_design"]
-      })) as BusinessCardTemplate[];
+      return data as BusinessCardTemplate[];
     },
   });
 
@@ -189,11 +183,14 @@ const Editor = () => {
         const frontData = existingCard.front_data as any;
         const backData = existingCard.back_data as any;
         
+        const frontDesign = template.front_design as any;
+        const backDesign = template.back_design as any;
+        
         // Check if custom colors were saved
-        const customFrontBackground = frontData.customBackground || template.front_design.background;
-        const customFrontTextColor = frontData.customTextColor || template.front_design.textColor;
-        const customBackBackground = backData.customBackground || template.back_design.background;
-        const customBackTextColor = backData.customTextColor || template.back_design.textColor;
+        const customFrontBackground = frontData.customBackground || frontDesign?.background || "#ffffff";
+        const customFrontTextColor = frontData.customTextColor || frontDesign?.textColor || "#000000";
+        const customBackBackground = backData.customBackground || backDesign?.background || "#f8f8f8";
+        const customBackTextColor = backData.customTextColor || backDesign?.textColor || "#333333";
         
         // Check if custom font sizes were saved
         const customFontSizes = {
@@ -230,14 +227,17 @@ const Editor = () => {
     if (selectedTemplateId && templates) {
       const template = templates.find(t => t.id === selectedTemplateId);
       if (template && !cardData.customization.frontBackground) {
+        const frontDesign = template.front_design as any;
+        const backDesign = template.back_design as any;
+        
         setCardData(prev => ({
           ...prev,
           customization: {
             ...prev.customization,
-            frontBackground: template.front_design.background,
-            frontTextColor: template.front_design.textColor,
-            backBackground: template.back_design.background,
-            backTextColor: template.back_design.textColor
+            frontBackground: frontDesign?.background || "#ffffff",
+            frontTextColor: frontDesign?.textColor || "#000000",
+            backBackground: backDesign?.background || "#f8f8f8",
+            backTextColor: backDesign?.textColor || "#333333"
           }
         }));
       }
@@ -291,14 +291,17 @@ const Editor = () => {
 
   const resetToTemplateDefaults = () => {
     if (selectedTemplate) {
+      const frontDesign = selectedTemplate.front_design as any;
+      const backDesign = selectedTemplate.back_design as any;
+      
       setCardData(prev => ({
         ...prev,
         customization: {
           ...prev.customization,
-          frontBackground: selectedTemplate.front_design.background,
-          frontTextColor: selectedTemplate.front_design.textColor,
-          backBackground: selectedTemplate.back_design.background,
-          backTextColor: selectedTemplate.back_design.textColor,
+          frontBackground: frontDesign?.background || "#ffffff",
+          frontTextColor: frontDesign?.textColor || "#000000",
+          backBackground: backDesign?.background || "#f8f8f8",
+          backTextColor: backDesign?.textColor || "#333333",
           fontSize: {
             name: 24,
             title: 16,
@@ -325,12 +328,15 @@ const Editor = () => {
     try {
       setIsSaving(true);
       
+      const frontDesign = selectedTemplate.front_design as any;
+      const backDesign = selectedTemplate.back_design as any;
+      
       const frontData = {
         firstName: cardData.firstName,
         lastName: cardData.lastName,
         title: cardData.title,
         companyName: cardData.companyName,
-        design: selectedTemplate.front_design,
+        design: frontDesign,
         customBackground: cardData.customization.frontBackground,
         customTextColor: cardData.customization.frontTextColor,
         fontSize: cardData.customization.fontSize
@@ -341,7 +347,7 @@ const Editor = () => {
         phone: cardData.phone,
         website: cardData.website,
         address: cardData.address,
-        design: selectedTemplate.back_design,
+        design: backDesign,
         customBackground: cardData.customization.backBackground,
         customTextColor: cardData.customization.backTextColor
       };
@@ -616,7 +622,7 @@ const Editor = () => {
                             <div className="space-y-2">
                               <Label>Name Font Size: {cardData.customization.fontSize.name}px</Label>
                               <Slider 
-                                defaultValue={[cardData.customization.fontSize.name]} 
+                                value={[cardData.customization.fontSize.name]} 
                                 max={fontSizeOptions.nameMax} 
                                 min={fontSizeOptions.nameMin}
                                 step={1}
@@ -627,7 +633,7 @@ const Editor = () => {
                             <div className="space-y-2">
                               <Label>Title Font Size: {cardData.customization.fontSize.title}px</Label>
                               <Slider 
-                                defaultValue={[cardData.customization.fontSize.title]} 
+                                value={[cardData.customization.fontSize.title]} 
                                 max={fontSizeOptions.titleMax} 
                                 min={fontSizeOptions.titleMin}
                                 step={1}
@@ -638,7 +644,7 @@ const Editor = () => {
                             <div className="space-y-2">
                               <Label>Details Font Size: {cardData.customization.fontSize.details}px</Label>
                               <Slider 
-                                defaultValue={[cardData.customization.fontSize.details]} 
+                                value={[cardData.customization.fontSize.details]} 
                                 max={fontSizeOptions.detailsMax} 
                                 min={fontSizeOptions.detailsMin}
                                 step={1}
@@ -719,9 +725,9 @@ const Editor = () => {
                 </CardContent>
               </Card>
 
-              <div className="flex space-x-2">
+              <div className="flex flex-col space-y-4">
                 <Button 
-                  className="flex-1" 
+                  className="w-full" 
                   onClick={saveBusinessCard}
                   disabled={isSaving}
                 >
@@ -736,9 +742,10 @@ const Editor = () => {
                   )}
                 </Button>
                 
-                <Button variant="outline" className="flex-1">
-                  <Download className="mr-2 h-4 w-4" /> Export
-                </Button>
+                <BusinessCardExporter 
+                  cardName={cardData.name} 
+                  cardRef={activeTab === "front" ? frontCardRef : backCardRef} 
+                />
               </div>
             </div>
 
@@ -750,13 +757,16 @@ const Editor = () => {
                 </h2>
                 
                 <div className="w-full max-w-md aspect-[1.75/1] mb-6">
-                  <div className="business-card rounded-md shadow-lg overflow-hidden h-full">
-                    {activeTab === "front" ? (
+                  {activeTab === "front" ? (
+                    <div 
+                      ref={frontCardRef}
+                      className="business-card rounded-md shadow-lg overflow-hidden h-full"
+                    >
                       <div 
                         className="h-full p-6 flex flex-col justify-between"
                         style={{
-                          background: cardData.customization.frontBackground || selectedTemplate?.front_design.background || "#ffffff",
-                          color: cardData.customization.frontTextColor || selectedTemplate?.front_design.textColor || "#000000"
+                          background: cardData.customization.frontBackground || "#ffffff",
+                          color: cardData.customization.frontTextColor || "#000000"
                         }}
                       >
                         <div>
@@ -773,12 +783,17 @@ const Editor = () => {
                           </p>
                         </div>
                       </div>
-                    ) : (
+                    </div>
+                  ) : (
+                    <div 
+                      ref={backCardRef}
+                      className="business-card rounded-md shadow-lg overflow-hidden h-full"
+                    >
                       <div 
                         className="h-full p-6 flex flex-col justify-between"
                         style={{
-                          background: cardData.customization.backBackground || selectedTemplate?.back_design.background || "#f8f8f8",
-                          color: cardData.customization.backTextColor || selectedTemplate?.back_design.textColor || "#333333"
+                          background: cardData.customization.backBackground || "#f8f8f8",
+                          color: cardData.customization.backTextColor || "#333333"
                         }}
                       >
                         <div className="text-right">
@@ -793,8 +808,8 @@ const Editor = () => {
                           </p>
                         </div>
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="w-full">
@@ -807,15 +822,18 @@ const Editor = () => {
                         className={`cursor-pointer rounded-md overflow-hidden border-2 transition-all ${selectedTemplate?.id === template.id ? "border-primary" : "border-transparent hover:border-muted"}`}
                         onClick={() => {
                           setSelectedTemplateId(template.id);
+                          const frontDesign = template.front_design as any;
+                          const backDesign = template.back_design as any;
+                          
                           setCardData(prev => ({ 
                             ...prev, 
                             templateId: template.id,
                             customization: {
                               ...prev.customization,
-                              frontBackground: template.front_design.background,
-                              frontTextColor: template.front_design.textColor,
-                              backBackground: template.back_design.background,
-                              backTextColor: template.back_design.textColor
+                              frontBackground: frontDesign?.background || "#ffffff",
+                              frontTextColor: frontDesign?.textColor || "#000000",
+                              backBackground: backDesign?.background || "#f8f8f8",
+                              backTextColor: backDesign?.textColor || "#333333"
                             }
                           }));
                         }}
@@ -823,8 +841,12 @@ const Editor = () => {
                         <div 
                           className="h-16 p-2 text-xs"
                           style={{
-                            background: template.front_design.background,
-                            color: template.front_design.textColor
+                            background: typeof template.front_design === 'object' && template.front_design !== null
+                              ? (template.front_design as any).background
+                              : '#ffffff',
+                            color: typeof template.front_design === 'object' && template.front_design !== null
+                              ? (template.front_design as any).textColor
+                              : '#000000'
                           }}
                         >
                           {template.name}
