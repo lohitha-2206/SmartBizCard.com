@@ -1,32 +1,49 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Signup = () => {
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const [error, setError] = useState<string | null>(null);
+  const { signUp, user } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // If user is already logged in, redirect to home page
+  if (user) {
+    return <Navigate to="/" />;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long");
+      return;
+    }
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const result = await signUp(email, password, firstName, lastName);
+      if (!result.success) {
+        setError(result.error);
+      }
+    } catch (err: any) {
+      setError(err.message || "An error occurred during signup");
+    } finally {
       setIsLoading(false);
-      // In a real app, create the user account and handle authentication
-      toast({
-        title: "Account creation",
-        description: "This is a demo. Account creation would happen in a real app.",
-      });
-    }, 1000);
+    }
   };
 
   return (
@@ -40,20 +57,42 @@ const Signup = () => {
               Start creating professional business cards today
             </p>
           </div>
+          
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="name" className="text-sm font-medium">
-                  Full Name
-                </label>
-                <Input
-                  id="name"
-                  type="text"
-                  placeholder="John Doe"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  required
-                />
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label htmlFor="firstName" className="text-sm font-medium">
+                    First Name
+                  </label>
+                  <Input
+                    id="firstName"
+                    type="text"
+                    placeholder="John"
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="lastName" className="text-sm font-medium">
+                    Last Name
+                  </label>
+                  <Input
+                    id="lastName"
+                    type="text"
+                    placeholder="Doe"
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    required
+                  />
+                </div>
               </div>
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium">
@@ -86,7 +125,14 @@ const Signup = () => {
               </div>
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating account..." : "Create account"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                "Create account"
+              )}
             </Button>
           </form>
           <div className="relative my-4">
@@ -97,7 +143,15 @@ const Signup = () => {
               <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
             </div>
           </div>
-          <Button variant="outline" className="w-full" disabled={isLoading}>
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            disabled={isLoading}
+            onClick={() => {
+              // Will be implemented in a future update
+              setError("Google authentication is coming soon!");
+            }}
+          >
             <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

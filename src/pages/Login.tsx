@@ -1,31 +1,41 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { useToast } from "@/components/ui/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const [error, setError] = useState<string | null>(null);
+  const { signIn, user } = useAuth();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // If user is already logged in, redirect to home page
+  if (user) {
+    return <Navigate to="/" />;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const result = await signIn(email, password);
+      if (!result.success) {
+        setError(result.error);
+      }
+    } catch (err: any) {
+      setError(err.message || "An error occurred during login");
+    } finally {
       setIsLoading(false);
-      // In a real app, check credentials and handle authentication
-      toast({
-        title: "Login information",
-        description: "This is a demo. Authentication would happen in a real app.",
-      });
-    }, 1000);
+    }
   };
 
   return (
@@ -39,6 +49,13 @@ const Login = () => {
               Enter your credentials to access your account
             </p>
           </div>
+          
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
               <div className="space-y-2">
@@ -77,7 +94,14 @@ const Login = () => {
               </div>
             </div>
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign in"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Signing in...
+                </>
+              ) : (
+                "Sign in"
+              )}
             </Button>
           </form>
           <div className="relative my-4">
@@ -88,7 +112,15 @@ const Login = () => {
               <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
             </div>
           </div>
-          <Button variant="outline" className="w-full" disabled={isLoading}>
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            disabled={isLoading}
+            onClick={() => {
+              // Will be implemented in a future update
+              setError("Google authentication is coming soon!");
+            }}
+          >
             <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
               <path
                 d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
